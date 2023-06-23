@@ -25,7 +25,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://peiandhao.github.io/img/Linux_Kernel.png">
 <meta property="article:published_time" content="2023-06-20T14:46:32.000Z">
-<meta property="article:modified_time" content="2023-06-22T15:07:48.161Z">
+<meta property="article:modified_time" content="2023-06-23T04:27:01.707Z">
 <meta property="article:author" content="peiwithhao">
 <meta property="article:tag" content="pwn">
 <meta property="article:tag" content="kernel">
@@ -269,7 +269,7 @@
         
         
           <!-- compatible with older versions-->
-          90 分钟
+          91 分钟
         
       </span>
     
@@ -399,7 +399,9 @@
 <p>基础知识介绍完毕，咱们开始介绍咱们内核pwn的最主要的目的</p>
 <h1 id="0x01-目的"><a href="#0x01-目的" class="headerlink" title="0x01 目的"></a>0x01 目的</h1><p>借用arttnba3师傅的原话：“毫无疑问，对于内核漏洞进行利用，并最终提权到 root，在黑客界是一种最为 old school 的美学（（“我这里打两个括号以示尊敬（。<br>咱们在内核pwn中，最重要以及最广泛的那就是提权了，其他诸如dos攻击等也行，但是主要是把人家服务器搞崩之类的，并没有提权来的高效。</p>
 <h2 id="1-提权-Elevation-of-authority"><a href="#1-提权-Elevation-of-authority" class="headerlink" title="1. 提权(Elevation of authority)"></a>1. 提权(Elevation of authority)</h2><p>所谓提权，直译也即提升权限，是在咱们已经在得到一个shell之后，咱们进行深入攻击的操作，那么请问如何得到一个shell呢，那就请大伙好好学习用户模式下的pwn吧（<br>而与提权息息相关的那不外乎两个函数，不过咱们先不揭晓他们，咱们先介绍一个结构体：<br>在内核中使用结构体 <code>task_struct</code> 表示一个进程，该结构体定义于内核源码<code>include/linux/sched.h</code>中，代码比较长就不在这里贴出了<br>一个进程描述符的结构应当如下图所示：</p>
-<p><img src="/Linux-Kernel-0x00-Base/evolution.png" srcset="/img/loading.gif" lazyload><br>注意到task_struct的源码中有如下代码：</p>
+<p><img src="/evolution.png" srcset="/img/loading.gif" lazyload></p>
+<img src="/2023/06/20/Linux-Kernel-0x00-Base/evolution.png" srcset="/img/loading.gif" lazyload class="" title="说明">
+<p>注意到task_struct的源码中有如下代码：</p>
 <pre><code class="hljs">/* Process credentials: */
 
 /* Tracer&#39;s credentials at attach: */
@@ -452,7 +454,7 @@ const struct cred __rcu        *cred;
 <ol>
 <li><code>baby.ko</code>:包含漏洞的驱动模块，一般使用ida打开分析,可以根据init文件的路径去rootfs.cpio里面找</li>
 <li><code>bzImage</code>:打包的内核代码，一般通过它抽取出vmlinx,寻找gadget也是在这里。可以采用的方式其一是<code>extract-vmlinux</code>,另一种是使用<code>vmlinux-to-elf</code></li>
-<li><code>initramfs.cpio</code>:内核采用的文件系统,解压一般可以采用一下方式：<code>cpio -i --no-absolute-filenames -F ../rootfs.cpio</code>，然后重新压缩可以采用:<code>find . | cpio -o --format=newc &gt; ../rootfs.cpio</code></li>
+<li><code>initramfs.cpio</code>:内核采用的文件系统,解压一般可以采用一下方式：<code>cpio -idmv &lt; ../rootfs.cpio</code>，注意这里如果显示cpio文件类型为gz，我们需要先使用<code>gzip -d file.cpio</code>来解压缩，然后重新压缩可以采用:<code>find . | cpio -o --format=newc &gt; ../rootfs.cpio</code></li>
 <li><code>startvm.sh</code>:启动QEMU的脚本</li>
 <li><code>vmlinux</code>:静态编译，未压缩的内核文件，可以在里面找ROP</li>
 <li><code>init文件</code>:在rootfs.cpio文件解压可以看到，记录了系统初始化时的操作，一般在文件里insmod一个内核模块.ko文件，通常是有漏洞的文件</li>
