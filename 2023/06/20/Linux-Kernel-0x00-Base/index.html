@@ -25,7 +25,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://peiandhao.github.io/img/Linux_Kernel.png">
 <meta property="article:published_time" content="2023-06-20T14:46:32.000Z">
-<meta property="article:modified_time" content="2023-09-21T15:58:02.146Z">
+<meta property="article:modified_time" content="2023-09-24T09:43:28.003Z">
 <meta property="article:author" content="peiwithhao">
 <meta property="article:tag" content="pwn">
 <meta property="article:tag" content="kernel">
@@ -615,7 +615,7 @@ ROPgadget --binary ./vmlinux &gt; ./gadget
 </thead>
 <tbody><tr>
 <td>cred</td>
-<td>kmalloc-192</td>
+<td>kmalloc-192(0x80)</td>
 <td></td>
 <td>:thumbsup:</td>
 <td>:x:</td>
@@ -623,7 +623,7 @@ ROPgadget --binary ./vmlinux &gt; ./gadget
 </tr>
 <tr>
 <td>tty_struct</td>
-<td>0x2e0(kmalloc-1k)</td>
+<td>kmalloc-1k(0x2e0)</td>
 <td>GFP_KERNEL_ACCOUNT</td>
 <td>:thumbsup:</td>
 <td>:x:</td>
@@ -631,7 +631,7 @@ ROPgadget --binary ./vmlinux &gt; ./gadget
 </tr>
 <tr>
 <td>user_key_payload</td>
-<td>0x18(头部)</td>
+<td>kmalloc-*(0x18 head)</td>
 <td>GFP_KERNEL</td>
 <td>:thumbsup:</td>
 <td>:thumbsup:</td>
@@ -655,7 +655,7 @@ ROPgadget --binary ./vmlinux &gt; ./gadget
 </tr>
 <tr>
 <td>msg_msg</td>
-<td>kmalloc-*(&lt;&#x3D;4k)</td>
+<td>kmalloc-*(&lt;&#x3D;4k,0x30 head)</td>
 <td>GFP_KERNEL_ACCOUNT</td>
 <td>:x:</td>
 <td>:thumbsup:</td>
@@ -663,7 +663,7 @@ ROPgadget --binary ./vmlinux &gt; ./gadget
 </tr>
 <tr>
 <td>msg_msgseg</td>
-<td>kmalloc-*(&lt;&#x3D; 4k)</td>
+<td>kmalloc-*(&lt;&#x3D; 4k, 0x8 head)</td>
 <td>GFP_KERNEL_ACCOUNT</td>
 <td>:x:</td>
 <td>:thumbsup:</td>
@@ -687,7 +687,7 @@ ROPgadget --binary ./vmlinux &gt; ./gadget
 </tr>
 <tr>
 <td>sk_buff</td>
-<td>kmalloc-*(&gt;&#x3D;512)</td>
+<td>kmalloc-*(&gt;&#x3D;512, 320 tail)</td>
 <td></td>
 <td>:x:</td>
 <td>:x:</td>
@@ -700,7 +700,7 @@ ROPgadget --binary ./vmlinux &gt; ./gadget
 </ul>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">seq_operations</span> &#123;</span><br>	<span class="hljs-type">void</span> * (*start) (<span class="hljs-keyword">struct</span> seq_file *m, <span class="hljs-type">loff_t</span> *pos);<br>	<span class="hljs-type">void</span> (*stop) (<span class="hljs-keyword">struct</span> seq_file *m, <span class="hljs-type">void</span> *v);<br>	<span class="hljs-type">void</span> * (*next) (<span class="hljs-keyword">struct</span> seq_file *m, <span class="hljs-type">void</span> *v, <span class="hljs-type">loff_t</span> *pos);<br>	<span class="hljs-type">int</span> (*show) (<span class="hljs-keyword">struct</span> seq_file *m, <span class="hljs-type">void</span> *v);<br>&#125;;<br></code></pre></td></tr></table></figure>
 
-<p>当我们在读取打开的 <code>/proc/self/stat</code>文件时，会默认调用 <code>seq_operations-&gt;start</code>指针指向的函数</p>
+<p>当我们在读取打开的 <code>/proc/self/stat</code>文件时，会默认调用 <code>seq_operations-&gt;start</code>指针指向的函数，默认为内核中的函数 <code>single_start</code></p>
 <h2 id="tty-struct（内核基地址）"><a href="#tty-struct（内核基地址）" class="headerlink" title="tty_struct（内核基地址）"></a>tty_struct（内核基地址）</h2><ul>
 <li>大小：0x2e0</li>
 <li>open(“&#x2F;dev&#x2F;ptmx”)-&gt;alloc_tty_struct()-&gt;get tty_struct</li>
