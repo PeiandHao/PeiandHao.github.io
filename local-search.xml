@@ -4,6 +4,35 @@
   
   
   <entry>
+    <title>eBPF:Redemption</title>
+    <link href="/2024/02/06/eBPF-Redemption/"/>
+    <url>/2024/02/06/eBPF-Redemption/</url>
+    
+    <content type="html"><![CDATA[<h1 id="第一章：犁刀村"><a href="#第一章：犁刀村" class="headerlink" title="第一章：犁刀村"></a>第一章：犁刀村</h1><h1 id="第二章：马掌望台"><a href="#第二章：马掌望台" class="headerlink" title="第二章：马掌望台"></a>第二章：马掌望台</h1><h1 id="第三章：克莱蒙斯据点"><a href="#第三章：克莱蒙斯据点" class="headerlink" title="第三章：克莱蒙斯据点"></a>第三章：克莱蒙斯据点</h1><h1 id="第四章：圣丹尼斯"><a href="#第四章：圣丹尼斯" class="headerlink" title="第四章：圣丹尼斯"></a>第四章：圣丹尼斯</h1><h1 id="第五章：瓜玛"><a href="#第五章：瓜玛" class="headerlink" title="第五章：瓜玛"></a>第五章：瓜玛</h1><h1 id="第六章：河狸岩洞"><a href="#第六章：河狸岩洞" class="headerlink" title="第六章：河狸岩洞"></a>第六章：河狸岩洞</h1>]]></content>
+    
+    
+    <categories>
+      
+      <category>Linux Kernel</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Linux</tag>
+      
+      <tag>kernel</tag>
+      
+      <tag>source</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>corCTF2022-corjail赛题复现</title>
     <link href="/2024/01/08/corCTF2022-corjail/"/>
     <url>/2024/01/08/corCTF2022-corjail/</url>
